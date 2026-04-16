@@ -1,4 +1,4 @@
-package com.example.neet.Controller;
+package com.example.neet.controller;
 
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
