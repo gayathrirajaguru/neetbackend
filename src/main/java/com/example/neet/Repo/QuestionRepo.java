@@ -8,10 +8,12 @@ import com.example.neet.Entity.Question;
 import java.util.List;
 
 public interface QuestionRepo extends JpaRepository<Question, Long> {
+	
+	@Query(value = "SELECT * FROM neet_100_questions ORDER BY RAND() LIMIT 180", nativeQuery = true)
+	List<Question> getRandom180();
+	@Query(value = "SELECT * FROM neet_100_questions WHERE id >= (SELECT FLOOR(RAND() * (SELECT MAX(id) FROM neet_100_questions))) LIMIT 180", nativeQuery = true)
+	List<Question> getFastRandom180();
 
-	@Query(value = "SELECT * FROM neet_100_questions ORDER BY RAND() LIMIT 50", nativeQuery = true)
-	List<Question> getRandom50();
-
-	@Query(value = "SELECT * FROM neet_100_questions WHERE id NOT IN (:ids) ORDER BY RAND() LIMIT 50", nativeQuery = true)
-	List<Question> getRandom50Excluding(@Param("ids") List<Long> ids);
+	@Query(value = "SELECT * FROM neet_100_questions WHERE (:ids IS NULL OR id NOT IN (:ids)) ORDER BY RAND() LIMIT 180", nativeQuery = true)
+	List<Question> getRandom180Excluding(@Param("ids") List<Long> ids);
 }

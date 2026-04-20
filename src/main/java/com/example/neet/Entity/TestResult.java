@@ -18,13 +18,23 @@ public class TestResult {
     private int timeTaken;
 
     private LocalDateTime testDate = LocalDateTime.now();
+    
 
     @ManyToOne
     @JoinColumn(name = "student_id")
     private Student student;
 
     // Getters and Setters
+    @Column(columnDefinition = "TEXT")
+    private String questionIds;
+    
+    public String getQuestionIds() {
+        return questionIds;
+    }
 
+    public void setQuestionIds(String questionIds) {
+        this.questionIds = questionIds;
+    }
     public int getId() {
         return id;
     }

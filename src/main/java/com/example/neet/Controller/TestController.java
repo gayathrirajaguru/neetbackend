@@ -27,26 +27,67 @@ public class TestController {
     private TestResultRepo resultRepo;
     @Autowired
     private StudentRepo studentRepo;
-
+    
+    
     @GetMapping("/questions")
-    public List<Question> getQuestionsGet() {
-        return repo.getRandom50();
-    }
+    public List<Question> getQuestionsGet(@RequestParam(required = false) Integer studentId) {
 
+        List<Long> usedIds = new ArrayList<>();
+
+        // ✅ Only apply no-repeat if studentId is provided
+        if (studentId != null) {
+            usedIds = getUsedQuestionIds(studentId);
+        }
+
+        // ✅ Reset if all questions used
+        if (usedIds.size() >= repo.count()) {
+            usedIds.clear();
+        }
+
+        // ✅ Fetch questions
+        if (usedIds.isEmpty()) {
+            return repo.getRandom180();
+        } else {
+            return repo.getRandom180Excluding(usedIds);
+        }
+    }
     @PostMapping("/questions")
     public List<Question> getQuestionsPost(@RequestBody(required = false) List<Long> usedIds) {
         if (usedIds == null || usedIds.isEmpty()) {
-            return repo.getRandom50();
+            return repo.getRandom180();
         } else {
-            return repo.getRandom50Excluding(usedIds);
+        	return repo.getRandom180Excluding(usedIds);
         }
+    }
+    
+    private List<Long> getUsedQuestionIds(Integer studentId) {
+
+        List<TestResult> results = resultRepo.findAll();
+        List<Long> usedIds = new ArrayList<>();
+
+        for (TestResult r : results) {
+
+            if (r.getStudent() != null 
+                && r.getStudent().getId() == studentId 
+                && r.getQuestionIds() != null) {
+
+                String[] ids = r.getQuestionIds().split(",");
+
+                for (String id : ids) {
+                    if (!id.isEmpty()) {
+                        usedIds.add(Long.valueOf(id));
+                    }
+                }
+            }
+        }
+
+        return usedIds;
     }
     // Submit test
     @PostMapping("/submit")
     public Map<String, Object> submit(@RequestBody Map<String, Object> data) {
 
         Map<String, String> answers = (Map<String, String>) data.get("answers");
-
         List<Integer> questionIds = (List<Integer>) data.get("questionIds");
 
         if (questionIds == null || questionIds.isEmpty()) {
@@ -113,7 +154,17 @@ public class TestController {
         result.setCorrectAnswers(correct);
         result.setWrongAnswers(wrong);
         result.setTotalQuestions(questions.size());
-        result.setTimeTaken(60);
+
+        // ✅ 180 minutes = 10800 seconds
+        result.setTimeTaken(10800);
+
+        // ✅ STORE QUESTION IDS (IMPORTANT FOR NO-REPEAT LOGIC)
+        String questionIdsStr = questionIds.stream()
+                .map(String::valueOf)
+                .reduce((a, b) -> a + "," + b)
+                .orElse("");
+
+        result.setQuestionIds(questionIdsStr);
 
         resultRepo.save(result);
 
