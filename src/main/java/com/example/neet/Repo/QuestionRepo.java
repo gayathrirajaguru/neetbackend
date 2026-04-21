@@ -16,4 +16,10 @@ public interface QuestionRepo extends JpaRepository<Question, Long> {
 
 	@Query(value = "SELECT * FROM neet_100_questions WHERE (:ids IS NULL OR id NOT IN (:ids)) ORDER BY RAND() LIMIT 180", nativeQuery = true)
 	List<Question> getRandom180Excluding(@Param("ids") List<Long> ids);
+	@Query(value = "SELECT * FROM neet_100_questions WHERE subject = :subject AND (:ids IS NULL OR id NOT IN (:ids)) ORDER BY RAND() LIMIT :limit", nativeQuery = true)
+	List<Question> getBySubjectLimitExcluding(
+	    @Param("subject") String subject,
+	    @Param("limit") int limit,
+	    @Param("ids") List<Long> ids
+	);
 }

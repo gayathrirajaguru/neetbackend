@@ -29,37 +29,50 @@ public class TestController {
     private StudentRepo studentRepo;
     
     
+    private List<Question> getBalancedQuestions(List<Long> usedIds) {
+
+        List<Question> questions = new ArrayList<>();
+
+        // Physics - 45
+        questions.addAll(repo.getBySubjectLimitExcluding("Physics", 45, usedIds));
+
+        // Chemistry - 45
+        questions.addAll(repo.getBySubjectLimitExcluding("Chemistry", 45, usedIds));
+
+        // Biology - 90
+        questions.addAll(repo.getBySubjectLimitExcluding("Biology", 90, usedIds));
+
+        // Shuffle
+        java.util.Collections.shuffle(questions);
+
+        return questions;
+    }
+    
+    
     @GetMapping("/questions")
     public List<Question> getQuestionsGet(@RequestParam(required = false) Integer studentId) {
 
         List<Long> usedIds = new ArrayList<>();
 
-        // ✅ Only apply no-repeat if studentId is provided
         if (studentId != null) {
             usedIds = getUsedQuestionIds(studentId);
         }
 
-        // ✅ Reset if all questions used
         if (usedIds.size() >= repo.count()) {
             usedIds.clear();
         }
 
-        // ✅ Fetch questions
-        if (usedIds.isEmpty()) {
-            return repo.getRandom180();
-        } else {
-            return repo.getRandom180Excluding(usedIds);
-        }
+        return getBalancedQuestions(usedIds);
     }
     @PostMapping("/questions")
     public List<Question> getQuestionsPost(@RequestBody(required = false) List<Long> usedIds) {
-        if (usedIds == null || usedIds.isEmpty()) {
-            return repo.getRandom180();
-        } else {
-        	return repo.getRandom180Excluding(usedIds);
+
+        if (usedIds == null) {
+            usedIds = new ArrayList<>();
         }
+
+        return getBalancedQuestions(usedIds);
     }
-    
     private List<Long> getUsedQuestionIds(Integer studentId) {
 
         List<TestResult> results = resultRepo.findAll();
