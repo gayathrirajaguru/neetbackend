@@ -16,7 +16,9 @@ public class CorsConfig {
         CorsConfiguration config = new CorsConfiguration();
 
         config.setAllowedOrigins(Arrays.asList(
-            "http://localhost:5173",
+            "http://localhost:5174",
+            "http://localhost:5174",
+            
             "https://examportalneet.netlify.app"
         ));
 
