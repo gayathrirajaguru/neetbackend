@@ -6,6 +6,8 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.neet.Entity.Question;
@@ -25,32 +27,57 @@ public class TestController {
 
     @Autowired
     private TestResultRepo resultRepo;
+
     @Autowired
     private StudentRepo studentRepo;
-    
-    
+
+    // ================= FULL MOCK TEST =================
     private List<Question> getBalancedQuestions(List<Long> usedIds) {
 
         List<Question> questions = new ArrayList<>();
 
         // Physics - 45
-        questions.addAll(repo.getBySubjectLimitExcluding("Physics", 45, usedIds));
+        questions.addAll(repo.getBySubjectExcluding("Physics", usedIds, PageRequest.of(0, 45)));
 
         // Chemistry - 45
-        questions.addAll(repo.getBySubjectLimitExcluding("Chemistry", 45, usedIds));
+        questions.addAll(repo.getBySubjectExcluding("Chemistry", usedIds, PageRequest.of(0, 45)));
 
         // Biology - 90
-        questions.addAll(repo.getBySubjectLimitExcluding("Biology", 90, usedIds));
+        questions.addAll(repo.getBySubjectExcluding("Biology", usedIds, PageRequest.of(0, 90)));
 
-        // Shuffle
         java.util.Collections.shuffle(questions);
 
         return questions;
     }
-    
-    
+
+    // ================= SUBJECT-WISE TEST =================
+    private List<Question> getSubjectQuestions(String subject, List<Long> usedIds) {
+
+        List<Question> questions = new ArrayList<>();
+
+        if (subject.equalsIgnoreCase("physics")) {
+            questions.addAll(repo.getBySubjectExcluding("Physics", usedIds, PageRequest.of(0, 180)));
+        }
+
+        else if (subject.equalsIgnoreCase("chemistry")) {
+            questions.addAll(repo.getBySubjectExcluding("Chemistry", usedIds, PageRequest.of(0, 180)));
+        }
+
+        else if (subject.equalsIgnoreCase("biology")) {
+            questions.addAll(repo.getBySubjectExcluding("Biology", usedIds, PageRequest.of(0, 170)));
+            questions.addAll(repo.getBySubjectExcluding("Botany", usedIds, PageRequest.of(0, 10)));
+        }
+
+        java.util.Collections.shuffle(questions);
+
+        return questions;
+    }
+
+    // ================= GET QUESTIONS =================
     @GetMapping("/questions")
-    public List<Question> getQuestionsGet(@RequestParam(required = false) Integer studentId) {
+    public List<Question> getQuestionsGet(
+            @RequestParam(required = false) Integer studentId,
+            @RequestParam(required = false) String subject) {
 
         List<Long> usedIds = new ArrayList<>();
 
@@ -58,45 +85,42 @@ public class TestController {
             usedIds = getUsedQuestionIds(studentId);
         }
 
+        // Reset if all used
         if (usedIds.size() >= repo.count()) {
             usedIds.clear();
         }
 
-        return getBalancedQuestions(usedIds);
-    }
-    @PostMapping("/questions")
-    public List<Question> getQuestionsPost(@RequestBody(required = false) List<Long> usedIds) {
-
-        if (usedIds == null) {
-            usedIds = new ArrayList<>();
+        // Core logic
+        if (subject == null || subject.equalsIgnoreCase("all")) {
+            return getBalancedQuestions(usedIds);
         }
 
-        return getBalancedQuestions(usedIds);
+        return getSubjectQuestions(subject, usedIds);
     }
-    private List<Long> getUsedQuestionIds(Integer studentId) {
 
-        List<TestResult> results = resultRepo.findAll();
+    // ================= POST QUESTIONS =================
+    @PostMapping("/questions")
+    public List<Question> getQuestionsPost(@RequestBody Map<String, Object> data) {
+
         List<Long> usedIds = new ArrayList<>();
 
-        for (TestResult r : results) {
-
-            if (r.getStudent() != null 
-                && r.getStudent().getId() == studentId 
-                && r.getQuestionIds() != null) {
-
-                String[] ids = r.getQuestionIds().split(",");
-
-                for (String id : ids) {
-                    if (!id.isEmpty()) {
-                        usedIds.add(Long.valueOf(id));
-                    }
-                }
-            }
+        if (data.get("usedIds") != null) {
+            usedIds = ((List<?>) data.get("usedIds"))
+                    .stream()
+                    .map(id -> Long.valueOf(id.toString()))
+                    .toList();
         }
 
-        return usedIds;
+        String subject = (String) data.get("subject");
+
+        if (subject == null || subject.equalsIgnoreCase("all")) {
+            return getBalancedQuestions(usedIds);
+        }
+
+        return getSubjectQuestions(subject, usedIds);
     }
-    // Submit test
+
+    // ================= SUBMIT TEST =================
     @PostMapping("/submit")
     public Map<String, Object> submit(@RequestBody Map<String, Object> data) {
 
@@ -167,11 +191,8 @@ public class TestController {
         result.setCorrectAnswers(correct);
         result.setWrongAnswers(wrong);
         result.setTotalQuestions(questions.size());
-
-        // ✅ 180 minutes = 10800 seconds
         result.setTimeTaken(10800);
 
-        // ✅ STORE QUESTION IDS (IMPORTANT FOR NO-REPEAT LOGIC)
         String questionIdsStr = questionIds.stream()
                 .map(String::valueOf)
                 .reduce((a, b) -> a + "," + b)
@@ -190,14 +211,17 @@ public class TestController {
 
         return response;
     }
-    // Get test history
+
+    // ================= HISTORY =================
     @GetMapping("/history")
     public List<TestResult> getHistory() {
         return resultRepo.findAll();
     }
-    
+
+    // ================= STATS =================
     @GetMapping("/stats")
     public Map<String, Object> getStats() {
+
         List<TestResult> results = resultRepo.findAll();
 
         int totalTests = results.size();
@@ -210,5 +234,28 @@ public class TestController {
         map.put("avgScore", avgScore);
 
         return map;
+    }
+
+    // ================= HELPER =================
+    private List<Long> getUsedQuestionIds(Integer studentId) {
+
+        List<TestResult> results = resultRepo.findByStudentId(studentId);
+
+        List<Long> usedIds = new ArrayList<>();
+
+        for (TestResult result : results) {
+            if (result.getQuestionIds() != null) {
+                String[] ids = result.getQuestionIds().split(",");
+                for (String id : ids) {
+                    try {
+                        usedIds.add(Long.parseLong(id));
+                    } catch (Exception e) {
+                        // ignore invalid
+                    }
+                }
+            }
+        }
+
+        return usedIds;
     }
 }
