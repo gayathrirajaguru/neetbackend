@@ -8,7 +8,7 @@ public class Student {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    private int id;
+    private Integer id; 
 
     private String name;
     private String email;
@@ -16,6 +16,16 @@ public class Student {
     private String phone;
 
     private boolean approved;
+ // 🔐 Approval token (for email verification)
+    private String approvalToken;
+
+    public String getApprovalToken() {
+        return approvalToken;
+    }
+
+    public void setApprovalToken(String approvalToken) {
+        this.approvalToken = approvalToken;
+    }
     private String institute;  
 
     @Column(name = "target_exam")
