@@ -38,28 +38,27 @@ public class StudentController {
         // 1️⃣ Save student
         Student saved = studentRepo.save(student);
 
-        // 2️⃣ Generate approval token (SECURITY)
+        // 2️⃣ Generate token
         String token = UUID.randomUUID().toString();
         saved.setApprovalToken(token);
         studentRepo.save(saved);
 
         // 3️⃣ Create approval link
         String baseUrl = "https://neetbackend-jggh.onrender.com";
-        String approvalLink = baseUrl + "/api/student/approve/" 
+        String approvalLink = baseUrl + "/api/student/approve/"
                 + saved.getId() + "?token=" + token;
 
-        // 4️⃣ Send email to user
+        // 4️⃣ Send mail to user (SAFE)
         emailService.sendMail(
                 student.getEmail(),
                 "Registration Successful",
                 "Hi " + student.getName() + ",\n\n" +
-                "Your account has been created successfully.\n" +
                 "Your account is under review.\n\n" +
                 "You can login after approval.\n\n" +
                 "Regards,\nNEET Team"
         );
 
-        // 5️⃣ Send email to owner (HTML button)
+        // 5️⃣ Owner email (SAFE HTML)
         String htmlContent =
                 "<div style='font-family: Arial; text-align: center;'>"
                 + "<h2>New Student Registration</h2>"
@@ -67,16 +66,15 @@ public class StudentController {
                 + "<p><b>Email:</b> " + student.getEmail() + "</p>"
                 + "<br>"
                 + "<a href='" + approvalLink + "' "
-                + "style='background: linear-gradient(45deg, #28a745, #218838);"
-                + "color: white; padding: 14px 24px; font-size: 16px;"
-                + "text-decoration: none; border-radius: 8px;'>"
-                + "✅ Approve User"
+                + "style='background: green; color: white; padding: 12px 20px; "
+                + "text-decoration: none; border-radius: 5px;'>"
+                + "Approve User"
                 + "</a>"
                 + "</div>";
 
         emailService.sendHtmlMail(
                 ownerEmail,
-                "New Student Registration - Approval Required",
+                "New Student Registration",
                 htmlContent
         );
 
@@ -92,10 +90,10 @@ public class StudentController {
         Student student = studentRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
 
-        // 🔐 Validate token
+        // 🔐 Token validation
         if (student.getApprovalToken() == null ||
             !student.getApprovalToken().equals(token)) {
-            return "<h3>Invalid or expired approval link ❌</h3>";
+            return "<h3>Invalid or expired link ❌</h3>";
         }
 
         student.setApproved(true);
@@ -107,8 +105,7 @@ public class StudentController {
                 student.getEmail(),
                 "Account Approved ✅",
                 "Hi " + student.getName() + ",\n\n" +
-                "Your account has been approved.\n" +
-                "You can now login.\n\n" +
+                "Your account is approved.\nYou can login now.\n\n" +
                 "Regards,\nNEET Team"
         );
 
