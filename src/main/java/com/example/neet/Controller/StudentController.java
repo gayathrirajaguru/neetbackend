@@ -35,48 +35,39 @@ public class StudentController {
 
         student.setApproved(false);
 
-        // 1️⃣ Save student
         Student saved = studentRepo.save(student);
 
-        // 2️⃣ Generate token
         String token = UUID.randomUUID().toString();
         saved.setApprovalToken(token);
         studentRepo.save(saved);
 
-        // 3️⃣ Create approval link
         String baseUrl = "https://neetbackend-jggh.onrender.com";
         String approvalLink = baseUrl + "/api/student/approve/"
                 + saved.getId() + "?token=" + token;
 
-        // 4️⃣ Send mail to user (SAFE)
-        emailService.sendMail(
-                student.getEmail(),
-                "Registration Successful",
-                "Hi " + student.getName() + ",\n\n" +
-                "Your account is under review.\n\n" +
-                "You can login after approval.\n\n" +
-                "Regards,\nNEET Team"
-        );
+        // 🔥 EMAIL SAFE BLOCK
+        try {
 
-        // 5️⃣ Owner email (SAFE HTML)
-        String htmlContent =
-                "<div style='font-family: Arial; text-align: center;'>"
-                + "<h2>New Student Registration</h2>"
-                + "<p><b>Name:</b> " + student.getName() + "</p>"
-                + "<p><b>Email:</b> " + student.getEmail() + "</p>"
-                + "<br>"
-                + "<a href='" + approvalLink + "' "
-                + "style='background: green; color: white; padding: 12px 20px; "
-                + "text-decoration: none; border-radius: 5px;'>"
-                + "Approve User"
-                + "</a>"
-                + "</div>";
+            emailService.sendMail(
+                    student.getEmail(),
+                    "Registration Successful",
+                    "Hi " + student.getName() + ", your account is under review."
+            );
 
-        emailService.sendHtmlMail(
-                ownerEmail,
-                "New Student Registration",
-                htmlContent
-        );
+            String htmlContent =
+                    "<h3>New User</h3>"
+                    + "<p>" + student.getEmail() + "</p>"
+                    + "<a href='" + approvalLink + "'>Approve</a>";
+
+            emailService.sendHtmlMail(
+                    ownerEmail,
+                    "New Registration",
+                    htmlContent
+            );
+
+        } catch (Exception e) {
+            System.out.println("EMAIL ERROR: " + e.getMessage());
+        }
 
         return saved;
     }
@@ -112,7 +103,6 @@ public class StudentController {
         return "<h2>User Approved Successfully ✅</h2>";
     }
 
-    // ================= LOGIN =================
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody LoginRequest request) {
 
@@ -124,6 +114,13 @@ public class StudentController {
 
         Student student = optionalStudent.get();
 
+        // 🔐 PASSWORD CHECK (IMPORTANT)
+        if (!student.getPassword().equals(request.getPassword())) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body("Invalid Email or Password");
+        }
+
+        // 🚫 APPROVAL CHECK
         if (!student.isApproved()) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body("Your account is not approved yet");
