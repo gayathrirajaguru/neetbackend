@@ -14,21 +14,50 @@ public class StudentController {
     @Autowired
     private StudentRepo studentRepo;
 
-    // ✅ REGISTER
+    // ================= REGISTER =================
     @PostMapping("/register")
     public Student register(@RequestBody Student student) {
 
-        student.setApproved(true); // optional
+        // Prevent duplicate email
+        if (studentRepo.findByEmail(student.getEmail()).isPresent()) {
+            throw new RuntimeException("Email already exists");
+        }
 
+        student.setApproved(true);
         return studentRepo.save(student);
     }
 
-    // ✅ LOGIN
+    // ================= LOGIN =================
     @PostMapping("/login")
     public Student login(@RequestBody Student student) {
 
         return studentRepo
                 .findByEmailAndPassword(student.getEmail(), student.getPassword())
                 .orElseThrow(() -> new RuntimeException("Invalid Email or Password"));
+    }
+
+    // ================= UPDATE PROFILE =================
+    @PutMapping("/update")
+    public Student update(@RequestBody Student student) {
+
+        Student existing = studentRepo.findById(student.getId())
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        existing.setName(student.getName());
+        existing.setPhone(student.getPhone());
+        existing.setTargetExam(student.getTargetExam());
+        existing.setPreparationLevel(student.getPreparationLevel());
+        existing.setTargetYear(student.getTargetYear());
+        existing.setInstitute(student.getInstitute());
+        existing.setPreferredSubjects(student.getPreferredSubjects());
+
+        return studentRepo.save(existing);
+    }
+
+    // ================= GET PROFILE =================
+    @GetMapping("/{id}")
+    public Student getProfile(@PathVariable int id) {
+        return studentRepo.findById(id)
+                .orElseThrow(() -> new RuntimeException("User not found"));
     }
 }
