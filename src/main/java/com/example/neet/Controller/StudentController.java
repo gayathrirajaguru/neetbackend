@@ -1,36 +1,34 @@
 package com.example.neet.controller;
 
-import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
 import com.example.neet.Entity.Student;
+import com.example.neet.Repo.StudentRepo;
 
 @RestController
 @RequestMapping("/api/student")
-@CrossOrigin(origins = "http://localhost:5173")
-
+@CrossOrigin(origins = "*")
 public class StudentController {
 
-    // ================= LOGIN =================
-    @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody Student student) {
+    @Autowired
+    private StudentRepo studentRepo;
 
-        // ✅ Hardcoded credentials
-        String validEmail = "admin@gmail.com";
-        String validPassword = "123456";
+    // ✅ REGISTER
+    @PostMapping("/register")
+    public Student register(@RequestBody Student student) {
 
-        if (student.getEmail().equals(validEmail) &&
-            student.getPassword().equals(validPassword)) {
+        student.setApproved(true); // optional
 
-            return ResponseEntity.ok("Login Success");
-        } else {
-            return ResponseEntity.status(401).body("Invalid Email or Password");
-        }
+        return studentRepo.save(student);
     }
 
-    // ================= REGISTER (OPTIONAL) =================
-    @PostMapping("/register")
-    public String register(@RequestBody Student student) {
-        return "Registration disabled for now";
+    // ✅ LOGIN
+    @PostMapping("/login")
+    public Student login(@RequestBody Student student) {
+
+        return studentRepo
+                .findByEmailAndPassword(student.getEmail(), student.getPassword())
+                .orElseThrow(() -> new RuntimeException("Invalid Email or Password"));
     }
 }
