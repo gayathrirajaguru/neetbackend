@@ -126,7 +126,7 @@ public class StudentController {
                     .body("Your account is not approved yet");
         }
 
-        return ResponseEntity.ok("Login successful");
+        return ResponseEntity.ok(student);
     }
 
     // ================= UPDATE PROFILE =================
