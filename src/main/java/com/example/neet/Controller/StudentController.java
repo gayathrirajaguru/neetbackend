@@ -153,4 +153,15 @@ public class StudentController {
         return studentRepo.findById(id)
                 .orElseThrow(() -> new RuntimeException("User not found"));
     }
+    
+    
+    @GetMapping("/test-email")
+    public String testEmail() {
+        emailService.sendMail(
+            "gayuguru111@gmail.com",
+            "TEST MAIL",
+            "If you receive this, SMTP works"
+        );
+        return "Triggered";
+    }
 }
