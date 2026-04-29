@@ -158,7 +158,7 @@ public class StudentController {
     @GetMapping("/test-email")
     public String testEmail() {
         emailService.sendMail(
-            "gayuguru111@gmail.com",
+            "gayathrirajaguru2003@gmail.com",
             "TEST MAIL",
             "If you receive this, SMTP works"
         );
