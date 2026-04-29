@@ -24,7 +24,7 @@ public class EmailService {
             message.setTo(to);
             message.setSubject(subject);
             message.setText(text);
-
+            System.out.println("EMAIL SENT SUCCESS");
             mailSender.send(message);
 
         } catch (Exception e) {
